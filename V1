@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Krish's Calorie Tracker</title>
+    <style>
+        :root { --primary: #27ae60; --bg: #f8f9fa; --text: #2c3e50; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 360px; text-align: center; box-sizing: border-box; }
+        h1 { font-size: 1.6rem; margin-bottom: 5px; color: #1e272e; }
+        .goal-info { font-size: 0.9rem; color: #7f8c8d; margin-bottom: 20px; font-weight: 500; }
+        .progress-container { background: #ecf0f1; border-radius: 20px; height: 30px; width: 100%; overflow: hidden; margin: 20px 0; border: 1px solid #dfe6e9; }
+        #progress-bar { background: linear-gradient(90deg, #2ecc71, #27ae60); height: 100%; width: 0%; transition: width 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .stats { font-size: 2.5rem; font-weight: 800; color: #2d3436; margin-bottom: 5px; }
+        .remaining { font-size: 1rem; color: #e67e22; font-weight: 600; margin-bottom: 20px; }
+        input { width: 100%; padding: 15px; margin-bottom: 15px; border: 2px solid #edf2f7; border-radius: 15px; font-size: 1.1rem; text-align: center; box-sizing: border-box; outline: none; }
+        input:focus { border-color: var(--primary); }
+        .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 100%; }
+        button { padding: 16px; border: none; border-radius: 15px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+        .add-btn { background: var(--primary); color: white; box-shadow: 0 4px 10px rgba(39, 174, 96, 0.2); }
+        .quick-btn { background: #3498db; color: white; }
+        .clear-btn { background: #ffffff; color: #95a5a6; grid-column: span 2; margin-top: 15px; border: 1px solid #eee; }
+        button:active { transform: scale(0.96); opacity: 0.9; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>Daily Intake</h1>
+        <div class="goal-info">Goal: 1500 kcal | Weight: 88 kg</div>
+        
+        <div class="stats"><span id="total">0</span></div>
+        <div class="remaining"><span id="left">1500</span> kcal left</div>
+
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
+
+        <input type="number" id="manual-cal" placeholder="Enter calories..." inputmode="decimal">
+        
+        <div class="controls">
+            <button class="add-btn" onclick="addCals(parseInt(document.getElementById('manual-cal').value || 0))">Add Cal</button>
+            <button class="quick-btn" onclick="addCals(300)">Quick 300</button>
+            <button class="clear-btn" onclick="resetCals()">Reset for Tomorrow</button>
+        </div>
+    </div>
+
+    <script>
+        let total = localStorage.getItem('krish_cals') ? parseInt(localStorage.getItem('krish_cals')) : 0;
+        const goal = 1500;
+
+        function updateUI() {
+            document.getElementById('total').innerText = total;
+            let left = goal - total;
+            document.getElementById('left').innerText = left < 0 ? 0 : left;
+            
+            const percent = Math.min((total / goal) * 100, 100);
+            const bar = document.getElementById('progress-bar');
+            bar.style.width = percent + '%';
+            
+            // Change color if over limit
+            if (total > goal) {
+                bar.style.background = "#e74c3c";
+            } else {
+                bar.style.background = "linear-gradient(90deg, #2ecc71, #27ae60)";
+            }
+
+            localStorage.setItem('krish_cals', total);
+        }
+
+        function addCals(amt) {
+            if (amt > 0) {
+                total += amt;
+                document.getElementById('manual-cal').value = '';
+                updateUI();
+            }
+        }
+
+        function resetCals() {
+            if (confirm("Reset counter to 0?")) {
+                total = 0;
+                updateUI();
+            }
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>
