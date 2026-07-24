@@ -1,154 +1,814 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Krish's Tracker</title>
-    <link rel="apple-touch-icon" href="IMG_0044.jpeg">
-    <style>
-        :root { --primary: #27ae60; --bg: #f4f7f6; --tab-bg: #ffffff; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; }
-        
-        /* Tab Navigation */
-        .tab-bar { display: flex; background: var(--tab-bg); border-top: 1px solid #ddd; padding-bottom: env(safe-area-inset-bottom); }
-        .tab-btn { flex: 1; padding: 15px; border: none; background: none; font-size: 0.8rem; font-weight: bold; color: #7f8c8d; cursor: pointer; }
-        .tab-btn.active { color: var(--primary); }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Iron Log — Training Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#15120E;
+    --surface:#211B15;
+    --surface-2:#2A2319;
+    --ink:#F2ECE2;
+    --ink-muted:#9C9184;
+    --line:#392F24;
+    --accent:#3D63DD;
+    --danger:#D9483A;
+    --plate-25:#D9362B;
+    --plate-20:#3D63DD;
+    --plate-15:#E0B93D;
+    --plate-10:#3F9451;
+    --plate-5:#D8D2C6;
+    --radius:14px;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; padding:0; }
+  body {
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
 
-        /* Content Areas */
-        .content { flex: 1; overflow-y: auto; padding: 20px; display: none; }
-        .content.active { display: block; }
+  .toast {
+    position:fixed; top:14px; left:50%; transform:translateX(-50%) translateY(-16px);
+    background:var(--danger); color:#fff; padding:10px 18px; border-radius:10px;
+    font-size:13px; font-family:'IBM Plex Sans',sans-serif; font-weight:600;
+    opacity:0; pointer-events:none; transition:opacity .25s ease, transform .25s ease;
+    z-index:100; max-width:90%; text-align:center; box-shadow:0 6px 16px rgba(0,0,0,.35);
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-        /* UI Elements */
-        .card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; text-align: center; }
-        .stat-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-weight: bold; }
-        .progress-bg { background: #eee; border-radius: 10px; height: 10px; overflow: hidden; margin: 15px 0; }
-        #progress-bar { height: 100%; background: var(--primary); width: 0%; transition: 0.5s; }
-        
-        input { width: 100%; padding: 15px; border-radius: 12px; border: 1px solid #ddd; margin: 10px 0; box-sizing: border-box; font-size: 1rem; }
-        .btn-main { width: 100%; padding: 15px; background: var(--primary); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 1rem; }
-        
-        .list-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #eee; font-size: 0.9rem; }
-        .history-row { display: flex; justify-content: space-between; padding: 15px; background: white; border-radius: 12px; margin-bottom: 8px; border-left: 5px solid var(--primary); }
-    </style>
+  .app { max-width:480px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+
+  .app-header { padding:22px 20px 6px; display:flex; align-items:baseline; justify-content:space-between; }
+  .brand { font-family:'Big Shoulders Display', sans-serif; font-weight:800; font-size:28px; letter-spacing:.04em; }
+  .brand-accent { color:var(--accent); }
+  .header-date { font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.06em; }
+
+  .app-main { flex:1; padding:4px 16px 104px; overflow-y:auto; }
+
+  .panel-title { font-family:'Big Shoulders Display', sans-serif; font-weight:700; font-size:22px; letter-spacing:.03em; margin:18px 0 2px; text-transform:uppercase; }
+  .panel-sub { font-size:11px; color:var(--ink-muted); margin-bottom:16px; font-family:'IBM Plex Mono', monospace; text-transform:uppercase; letter-spacing:.05em; }
+
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:14px; }
+
+  .stat-row { display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:6px; gap:10px; }
+  .stat-value { font-family:'IBM Plex Mono', monospace; font-size:30px; font-weight:600; }
+  .stat-label { font-size:11px; color:var(--ink-muted); text-transform:uppercase; letter-spacing:.05em; }
+  .stat-delta { font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--ink-muted); }
+  .stat-delta.pos { color:var(--accent); }
+  .stat-delta.neg { color:var(--danger); }
+
+  .chart-wrap { margin-top:8px; }
+  .chart-empty, .empty-state { color:var(--ink-muted); font-size:13px; padding:26px 0; text-align:center; }
+
+  .form-row { display:flex; gap:8px; margin-top:4px; }
+  input[type=number], input[type=text] {
+    background:var(--surface-2); border:1px solid var(--line); color:var(--ink);
+    border-radius:10px; padding:11px 12px; font-family:'IBM Plex Mono', monospace; font-size:15px; width:100%;
+  }
+  input::placeholder { color:var(--ink-muted); font-family:'IBM Plex Sans', sans-serif; }
+  input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+  input[type=number] { -moz-appearance:textfield; }
+  input:focus-visible, button:focus-visible, .tick:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+  .btn { font-family:'IBM Plex Sans', sans-serif; font-weight:600; font-size:14px; border:none; border-radius:10px; padding:11px 16px; cursor:pointer; white-space:nowrap; }
+  .btn-primary { background:var(--accent); color:#fff; }
+  .btn-text { background:none; border:none; color:var(--accent); font-size:13px; font-weight:600; cursor:pointer; padding:4px; }
+
+  .list { list-style:none; margin:0; padding:0; }
+  .list-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); font-size:14px; gap:10px; }
+  .list-row:last-child { border-bottom:none; }
+  .row-date { color:var(--ink-muted); font-size:11px; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; }
+  .row-value { font-family:'IBM Plex Mono', monospace; font-weight:600; }
+  .remove-btn { background:none; border:none; color:var(--ink-muted); font-size:18px; line-height:1; cursor:pointer; padding:4px 6px; }
+  .remove-btn:hover { color:var(--danger); }
+
+  .progress-track { height:10px; background:var(--surface-2); border-radius:6px; overflow:hidden; margin:10px 0 8px; }
+  .progress-fill { height:100%; background:var(--accent); border-radius:6px; }
+  .progress-fill.over { background:var(--danger); }
+
+  .history-title { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-muted); margin:18px 0 6px; font-family:'IBM Plex Mono',monospace; }
+
+  .week-bars { display:flex; justify-content:space-between; align-items:flex-end; gap:10px; }
+  .week-bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:6px; min-width:0; }
+  .week-bar-value { font-family:'IBM Plex Mono', monospace; font-size:10px; color:var(--ink-muted); white-space:nowrap; }
+  .week-bar-track { width:100%; max-width:34px; height:80px; background:var(--surface-2); border-radius:6px; display:flex; align-items:flex-end; overflow:hidden; }
+  .week-bar-fill { width:100%; background:var(--accent); border-radius:6px 6px 0 0; min-height:4px; }
+  .week-bar-fill.empty { background:var(--line); }
+  .week-bar-label { font-family:'IBM Plex Mono', monospace; font-size:9px; color:var(--ink-muted); text-align:center; line-height:1.3; }
+
+  .day-selector { position:relative; display:flex; align-items:center; justify-content:space-between; padding:20px 6px 10px; }
+  .day-selector::before { content:''; position:absolute; left:6px; right:6px; top:calc(50% - 6px); height:4px; background:var(--line); border-radius:2px; z-index:0; }
+  .plate { position:relative; z-index:1; border-radius:50%; border:3px solid var(--bg); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono', monospace; font-weight:700; font-size:12px; cursor:pointer; }
+  .plate-25 { width:58px; height:58px; background:var(--plate-25); color:#fff; }
+  .plate-20 { width:52px; height:52px; background:var(--plate-20); color:#fff; }
+  .plate-15 { width:46px; height:46px; background:var(--plate-15); color:#241D10; }
+  .plate-10 { width:40px; height:40px; background:var(--plate-10); color:#fff; }
+  .plate-5  { width:34px; height:34px; background:var(--plate-5);  color:#241D10; }
+  .plate.selected { border-color:var(--ink); transform:translateY(-4px); }
+
+  .day-name { text-align:center; font-family:'Big Shoulders Display', sans-serif; font-size:20px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin:8px 0 16px; min-height:26px; }
+
+  .exercise-row { display:flex; align-items:center; gap:12px; padding:12px 0; border-bottom:1px solid var(--line); }
+  .exercise-row:last-child { border-bottom:none; }
+  .tick { appearance:none; -webkit-appearance:none; width:26px; height:26px; min-width:26px; border:2px solid var(--line); border-radius:7px; background:var(--surface-2); position:relative; cursor:pointer; }
+  .tick:checked { background:var(--accent); border-color:var(--accent); }
+  .tick:checked::after { content:''; position:absolute; left:8px; top:3px; width:6px; height:12px; border:solid var(--bg); border-width:0 3px 3px 0; transform:rotate(45deg); }
+  .ex-main { flex:1; display:flex; flex-direction:column; }
+  .ex-name { font-size:14px; font-weight:500; }
+  .ex-sets { font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--ink-muted); }
+  .exercise-row.done .ex-name { text-decoration:line-through; color:var(--ink-muted); }
+
+  .edit-ex-row { display:flex; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .edit-ex-row:last-child { border-bottom:none; }
+  .edit-ex-fields { flex:1; display:flex; flex-direction:column; gap:6px; min-width:0; }
+  input.edit-ex-name { font-family:'IBM Plex Sans', sans-serif; font-size:14px; padding:9px 10px; }
+  input.edit-ex-sets { font-family:'IBM Plex Mono', monospace; font-size:13px; padding:9px 10px; }
+
+  .tab-bar { position:fixed; left:0; right:0; bottom:0; max-width:480px; margin:0 auto; background:var(--surface); border-top:1px solid var(--line); display:flex; }
+  .tab-btn { flex:1; background:none; border:none; color:var(--ink-muted); display:flex; flex-direction:column; align-items:center; gap:4px; padding:12px 0 10px; font-family:'IBM Plex Sans',sans-serif; font-size:11px; font-weight:600; letter-spacing:.03em; text-transform:uppercase; cursor:pointer; }
+  .tab-btn.active { color:var(--accent); }
+  .tab-btn svg { width:20px; height:20px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition:none !important; animation:none !important; }
+  }
+</style>
 </head>
 <body>
+<div class="app">
+  <div class="toast" id="toast"></div>
+  <header class="app-header">
+    <span class="brand">IRON<span class="brand-accent">LOG</span></span>
+    <span class="header-date" id="header-date"></span>
+  </header>
 
-    <div id="tab-today" class="content active">
-        <div class="card">
-            <div class="stat-row">
-                <span>Consumed: <span id="disp-total">0</span></span>
-                <span>Left: <span id="disp-left">1500</span></span>
-            </div>
-            <div class="progress-bg"><div id="progress-bar"></div></div>
-            <input type="number" id="add-amt" placeholder="Enter calories..." inputmode="decimal">
-            <button class="btn-main" onclick="addEntry()">Add Calories</button>
+  <main class="app-main">
+    <section class="panel" id="panel-weight">
+      <div class="panel-title">Weight</div>
+      <div class="panel-sub">Body composition log</div>
+
+      <div class="card">
+        <div class="stat-row">
+          <div>
+            <div class="stat-label">Current</div>
+            <div class="stat-value" id="w-current">—</div>
+          </div>
+          <div class="stat-delta" id="w-delta"></div>
         </div>
-        <h3>Today's Log</h3>
-        <div id="today-list"></div>
-    </div>
+        <div class="chart-wrap" id="w-chart"></div>
+      </div>
 
-    <div id="tab-history" class="content">
-        <h3>Last 7 Days</h3>
-        <div id="history-list"></div>
-    </div>
+      <div class="history-title">Last 4 weeks</div>
+      <div class="card" id="w-weeks"></div>
 
-    <div id="tab-settings" class="content">
-        <div class="card">
-            <h3>Daily Goal</h3>
-            <p>Current: <span id="disp-goal">1500</span> kcal</p>
-            <input type="number" id="new-goal" placeholder="Set new goal..." inputmode="decimal">
-            <button class="btn-main" style="background:#2c3e50" onclick="updateGoal()">Update Goal</button>
+      <div class="card">
+        <div class="stat-label" style="margin-bottom:8px;">Log today's weight (kg)</div>
+        <div class="form-row">
+          <input type="number" id="w-input" step="0.1" min="20" max="300" placeholder="81.0" inputmode="decimal">
+          <button class="btn btn-primary" id="w-add">Log</button>
         </div>
-        <button onclick="localStorage.clear(); location.reload();" style="color:red; background:none; border:none; margin-top:50px; width:100%;">Reset All App Data</button>
-    </div>
+      </div>
 
-    <nav class="tab-bar">
-        <button class="tab-btn active" onclick="showTab('tab-today', this)">Today</button>
-        <button class="tab-btn" onclick="showTab('tab-history', this)">History</button>
-        <button class="tab-btn" onclick="showTab('tab-settings', this)">Settings</button>
-    </nav>
+      <div class="history-title">History</div>
+      <ul class="list" id="w-list"></ul>
+    </section>
 
-    <script>
-        // Data Structures
-        let data = JSON.parse(localStorage.getItem('calData')) || {
-            goal: 1500,
-            today: [],
-            history: [], // Array of {date: '...', total: 0}
-            lastDate: new Date().toLocaleDateString()
-        };
+    <section class="panel" id="panel-calories" hidden>
+      <div class="panel-title">Calories</div>
+      <div class="panel-sub">Daily tracker</div>
 
-        function showTab(tabId, btn) {
-            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            btn.classList.add('active');
-            if(tabId === 'tab-history') renderHistory();
-        }
+      <div class="card" id="c-goal-card"></div>
 
-        function checkNewDay() {
-            const todayStr = new Date().toLocaleDateString();
-            if (data.lastDate !== todayStr) {
-                const dayTotal = data.today.reduce((s, i) => s + i.amt, 0);
-                if (dayTotal > 0) {
-                    data.history.unshift({ date: data.lastDate, total: dayTotal });
-                    if (data.history.length > 7) data.history.pop();
-                }
-                data.today = [];
-                data.lastDate = todayStr;
-                save();
-            }
-        }
+      <div class="history-title">Last 4 weeks</div>
+      <div class="card" id="c-weeks"></div>
 
-        function addEntry() {
-            const val = parseInt(document.getElementById('add-amt').value);
-            if (val > 0) {
-                data.today.push({ amt: val, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
-                document.getElementById('add-amt').value = '';
-                save();
-                renderToday();
-            }
-        }
+      <div class="card">
+        <div class="stat-label" style="margin-bottom:8px;">Add food</div>
+        <div class="form-row">
+          <input type="text" id="c-label" placeholder="What did you eat" maxlength="40">
+        </div>
+        <div class="form-row" style="margin-top:8px;">
+          <input type="number" id="c-kcal" placeholder="kcal" min="1" step="1" inputmode="numeric">
+          <button class="btn btn-primary" id="c-add">Add</button>
+        </div>
+      </div>
 
-        function updateGoal() {
-            const g = parseInt(document.getElementById('new-goal').value);
-            if (g > 0) {
-                data.goal = g;
-                document.getElementById('new-goal').value = '';
-                save();
-                renderToday();
-                alert("Goal updated!");
-            }
-        }
+      <div class="history-title">Today</div>
+      <ul class="list" id="c-list"></ul>
 
-        function renderToday() {
-            const total = data.today.reduce((s, i) => s + i.amt, 0);
-            document.getElementById('disp-total').innerText = total;
-            document.getElementById('disp-left').innerText = Math.max(0, data.goal - total);
-            document.getElementById('disp-goal').innerText = data.goal;
-            document.getElementById('progress-bar').style.width = Math.min(100, (total/data.goal)*100) + '%';
-            
-            document.getElementById('today-list').innerHTML = data.today.slice().reverse().map(i => `
-                <div class="list-item"><span>+ ${i.amt} kcal</span><span style="color:#999">${i.time}</span></div>
-            `).join('');
-        }
+      <div class="history-title">Recent days</div>
+      <ul class="list" id="c-history"></ul>
+    </section>
 
-        function renderHistory() {
-            document.getElementById('history-list').innerHTML = data.history.map(h => `
-                <div class="history-row">
-                    <span>${h.date}</span>
-                    <span style="font-weight:bold">${h.total} kcal</span>
-                </div>
-            `).join('');
-        }
+    <section class="panel" id="panel-workout" hidden>
+      <div class="panel-title">Workout</div>
+      <div class="panel-sub">Pick today's session</div>
 
-        function save() {
-            localStorage.setItem('calData', JSON.stringify(data));
-        }
+      <div class="day-selector" id="day-selector"></div>
+      <div class="day-name" id="day-name"></div>
 
-        // Init
-        checkNewDay();
-        renderToday();
-    </script>
+      <div class="card" id="workout-card"></div>
+    </section>
+  </main>
+
+  <nav class="tab-bar" id="tab-bar">
+    <button class="tab-btn active" data-tab="weight">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.2"/></svg>
+      Weight
+    </button>
+    <button class="tab-btn" data-tab="calories">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3-3 4-3 8a3 3 0 006 0c0-1.2-.6-2-1-2.6.8.2 2.5 1.4 2.5 4.1A5.5 5.5 0 0111 17a5.5 5.5 0 01-4-9.3C8.5 6 10 4.5 12 2z"/></svg>
+      Calories
+    </button>
+    <button class="tab-btn" data-tab="workout">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="12" x2="20" y2="12"/><rect x="2" y="9" width="3" height="6" rx="1" fill="currentColor" stroke="none"/><rect x="19" y="9" width="3" height="6" rx="1" fill="currentColor" stroke="none"/><rect x="5.5" y="7" width="2.5" height="10" rx="1" fill="currentColor" stroke="none"/><rect x="16" y="7" width="2.5" height="10" rx="1" fill="currentColor" stroke="none"/></svg>
+      Workout
+    </button>
+  </nav>
+</div>
+
+<script>
+'use strict';
+
+var DEFAULT_WORKOUT_DAYS = [
+  { id:'d1', label:'Day 1', name:'Push', exercises:[
+    {id:'d1-0', name:"Bench Press (barbell or dumbbell)", sets:'4 × 8–10'},
+    {id:'d1-1', name:'Overhead Shoulder Press', sets:'3 × 8–10'},
+    {id:'d1-2', name:'Incline Dumbbell Press', sets:'3 × 10–12'},
+    {id:'d1-3', name:'Lateral Raises', sets:'3 × 12–15'},
+    {id:'d1-4', name:'Triceps Pushdown', sets:'3 × 12–15'},
+    {id:'d1-5', name:'Plank', sets:'3 × 30–45 sec'}
+  ]},
+  { id:'d2', label:'Day 2', name:'Pull', exercises:[
+    {id:'d2-0', name:'Pull-ups or Lat Pulldown', sets:'4 × 8–10'},
+    {id:'d2-1', name:'Barbell/Dumbbell Row', sets:'3 × 8–10'},
+    {id:'d2-2', name:'Seated Cable Row', sets:'3 × 10–12'},
+    {id:'d2-3', name:'Face Pulls', sets:'3 × 15'},
+    {id:'d2-4', name:'Bicep Curls', sets:'3 × 10–12'},
+    {id:'d2-5', name:'Hanging Knee Raises', sets:'3 × 12–15'}
+  ]},
+  { id:'d3', label:'Day 3', name:'Legs', exercises:[
+    {id:'d3-0', name:'Back Squat', sets:'4 × 8–10'},
+    {id:'d3-1', name:'Leg Press', sets:'3 × 10–12'},
+    {id:'d3-2', name:'Walking Lunges', sets:'3 × 10–12 per leg'},
+    {id:'d3-3', name:'Leg Extension', sets:'3 × 12–15'},
+    {id:'d3-4', name:'Standing Calf Raise', sets:'4 × 15–20'}
+  ]},
+  { id:'d4', label:'Day 4', name:'Upper Body', exercises:[
+    {id:'d4-0', name:'Incline Press', sets:'3 × 8–10'},
+    {id:'d4-1', name:'Pull-ups or Lat Pulldown', sets:'3 × 8–10'},
+    {id:'d4-2', name:'Dumbbell Shoulder Press', sets:'3 × 10–12'},
+    {id:'d4-3', name:'Cable Row', sets:'3 × 10–12'},
+    {id:'d4-4', name:'Dips or Close-Grip Bench Press', sets:'3 × 10–12'},
+    {id:'d4-5', name:'Bicep Curls', sets:'2 × 12'}
+  ]},
+  { id:'d5', label:'Day 5', name:'Lower Body + Conditioning', exercises:[
+    {id:'d5-0', name:'Romanian Deadlift', sets:'4 × 8–10'},
+    {id:'d5-1', name:'Hip Thrust', sets:'3 × 10–12'},
+    {id:'d5-2', name:'Leg Curl (lying or seated)', sets:'3 × 12–15'},
+    {id:'d5-3', name:'Bulgarian Split Squat', sets:'3 × 10 per leg'},
+    {id:'d5-4', name:'Core: Russian twists + leg raises', sets:'3 rounds'},
+    {id:'d5-5', name:'Optional: incline walk or steady bike', sets:'15 min'}
+  ]}
+];
+var PLATE_CLASSES = { d1:'plate-25', d2:'plate-20', d3:'plate-15', d4:'plate-10', d5:'plate-5' };
+
+var weightEntries = [];
+var calorieGoal = null;
+var calorieEntries = [];
+var workoutLog = {};
+var workoutProgram = [];
+var editingGoal = false;
+var editingWorkout = false;
+var workoutSaveTimer = null;
+
+function dateToStr(d) {
+  var yyyy = d.getFullYear();
+  var mm = String(d.getMonth() + 1).padStart(2, '0');
+  var dd = String(d.getDate()).padStart(2, '0');
+  return yyyy + '-' + mm + '-' + dd;
+}
+function todayStr() {
+  return dateToStr(new Date());
+}
+function getWeekRanges() {
+  var today = new Date();
+  today.setHours(0, 0, 0, 0);
+  var ranges = [];
+  for (var w = 3; w >= 0; w--) {
+    var end = new Date(today);
+    end.setDate(today.getDate() - (w * 7));
+    var start = new Date(end);
+    start.setDate(end.getDate() - 6);
+    ranges.push({ start: dateToStr(start), end: dateToStr(end) });
+  }
+  return ranges;
+}
+function renderWeekBars(weeks, unit, decimals) {
+  var vals = weeks.map(function(wk){ return wk.avg; }).filter(function(v){ return v != null; });
+  if (!vals.length) {
+    return '<div class="chart-empty">Not enough data yet — keep logging to fill this in</div>';
+  }
+  var max = Math.max.apply(null, vals);
+  var min = Math.min.apply(null, vals);
+  var range = (max - min) || 1;
+  var cols = weeks.map(function(wk) {
+    var hasData = wk.avg != null;
+    var pct = hasData ? (15 + 80 * ((wk.avg - min) / range)) : 4;
+    var valueLabel = hasData ? wk.avg.toFixed(decimals) + unit : '—';
+    var label = fmtDate(wk.start) + '–' + fmtDate(wk.end);
+    return '<div class="week-bar-col">' +
+      '<span class="week-bar-value">' + valueLabel + '</span>' +
+      '<div class="week-bar-track"><div class="week-bar-fill' + (hasData ? '' : ' empty') + '" style="height:' + pct.toFixed(0) + '%"></div></div>' +
+      '<span class="week-bar-label">' + label + '</span>' +
+      '</div>';
+  }).join('');
+  return '<div class="week-bars">' + cols + '</div>';
+}
+function fmtDate(str) {
+  var parts = str.split('-').map(Number);
+  var dt = new Date(parts[0], parts[1] - 1, parts[2]);
+  return dt.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+}
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function escapeHTML(str) {
+  var div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+var toastTimer = null;
+function showToast(msg) {
+  var el = document.getElementById('toast');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.classList.remove('show'); }, 3500);
+}
+function wait(ms) { return new Promise(function(r){ setTimeout(r, ms); }); }
+
+async function loadJSON(key, fallback) {
+  try {
+    var res = await window.storage.get(key, false);
+    return (res && res.value) ? JSON.parse(res.value) : fallback;
+  } catch (e) {
+    return fallback;
+  }
+}
+async function saveJSON(key, value, isRetry) {
+  try {
+    var result = await window.storage.set(key, JSON.stringify(value), false);
+    if (!result && !isRetry) {
+      await wait(500);
+      return saveJSON(key, value, true);
+    }
+    if (!result) {
+      console.error('Storage set returned no result for', key);
+      showToast('Storage error — your last change may not have saved. Try again.');
+    }
+  } catch (e) {
+    if (!isRetry) {
+      await wait(500);
+      return saveJSON(key, value, true);
+    }
+    console.error('Storage save failed for', key, e);
+    showToast('Storage error — your last change may not have saved. Try again.');
+  }
+}
+
+async function init() {
+  try {
+    document.getElementById('header-date').textContent =
+      new Date().toLocaleDateString('en-US', { weekday:'short', month:'short', day:'numeric' });
+  } catch (e) { console.error('Header init failed', e); }
+
+  var results;
+  try {
+    results = await Promise.all([
+      loadJSON('weight-entries', []),
+      loadJSON('calorie-goal', null),
+      loadJSON('calorie-entries', []),
+      loadJSON('workout-log', {}),
+      loadJSON('workout-program', null)
+    ]);
+  } catch (e) {
+    console.error('Loading saved data failed', e);
+    results = [[], null, [], {}, null];
+  }
+  weightEntries = results[0] || [];
+  calorieGoal = results[1];
+  calorieEntries = results[2] || [];
+  workoutLog = results[3] || {};
+  workoutProgram = results[4] || JSON.parse(JSON.stringify(DEFAULT_WORKOUT_DAYS));
+
+  try { renderWeight(); } catch (e) { console.error('renderWeight failed', e); }
+  try { renderCalories(); } catch (e) { console.error('renderCalories failed', e); }
+  try { renderWorkout(); } catch (e) { console.error('renderWorkout failed', e); }
+  try { bindEvents(); } catch (e) { console.error('bindEvents failed', e); }
+}
+
+/* ---------- WEIGHT ---------- */
+function renderWeight() {
+  var sorted = weightEntries.slice().sort(function(a,b){ return a.date.localeCompare(b.date); });
+  var current = sorted[sorted.length - 1];
+  document.getElementById('w-current').textContent = current ? current.weight.toFixed(1) + ' kg' : '—';
+
+  var deltaEl = document.getElementById('w-delta');
+  if (sorted.length > 1) {
+    var delta = sorted[sorted.length - 1].weight - sorted[0].weight;
+    var sign = delta > 0 ? '+' : '';
+    deltaEl.textContent = sign + delta.toFixed(1) + ' kg since first log';
+  } else {
+    deltaEl.textContent = '';
+  }
+
+  document.getElementById('w-chart').innerHTML = renderChart(sorted);
+
+  var weeks = getWeekRanges().map(function(r) {
+    var wEntries = weightEntries.filter(function(e){ return e.date >= r.start && e.date <= r.end; });
+    var avg = wEntries.length ? wEntries.reduce(function(s,e){ return s + e.weight; }, 0) / wEntries.length : null;
+    return { start: r.start, end: r.end, avg: avg };
+  });
+  var weeksHtml = renderWeekBars(weeks, ' kg', 1);
+  var weeksWithData = weeks.filter(function(wk){ return wk.avg != null; });
+  if (weeksWithData.length > 1) {
+    var wDelta = weeksWithData[weeksWithData.length - 1].avg - weeksWithData[0].avg;
+    var wSign = wDelta > 0 ? '+' : '';
+    weeksHtml += '<div class="stat-delta" style="margin-top:12px;text-align:center;">' + wSign + wDelta.toFixed(1) + ' kg across this span</div>';
+  }
+  document.getElementById('w-weeks').innerHTML = weeksHtml;
+
+  var list = document.getElementById('w-list');
+  if (!weightEntries.length) {
+    list.innerHTML = '<div class="empty-state">No entries yet — log today\'s weight to start your trend.</div>';
+  } else {
+    var desc = weightEntries.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+    list.innerHTML = desc.map(function(e) {
+      return '<li class="list-row">' +
+        '<span class="row-date">' + fmtDate(e.date) + '</span>' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<span class="row-value">' + e.weight.toFixed(1) + ' kg</span>' +
+        '<button class="remove-btn" data-del-weight="' + e.id + '" aria-label="Delete entry">×</button>' +
+        '</div></li>';
+    }).join('');
+  }
+}
+
+function renderChart(sorted) {
+  if (sorted.length < 2) {
+    return '<div class="chart-empty">Log a few entries to see your trend</div>';
+  }
+  var w = 300, h = 90, pad = 10;
+  var weights = sorted.map(function(e){ return e.weight; });
+  var min = Math.min.apply(null, weights) - 0.5;
+  var max = Math.max.apply(null, weights) + 0.5;
+  var range = (max - min) || 1;
+  var stepX = (w - pad * 2) / (sorted.length - 1);
+  var pts = sorted.map(function(e, i) {
+    var x = pad + i * stepX;
+    var y = pad + (h - pad * 2) * (1 - (e.weight - min) / range);
+    return [x, y];
+  });
+  var line = pts.map(function(p){ return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+  var dots = pts.map(function(p) {
+    return '<circle cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3" fill="var(--accent)" />';
+  }).join('');
+  return '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '" preserveAspectRatio="none">' +
+    '<polyline points="' + line + '" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+    dots + '</svg>';
+}
+
+async function addWeightEntry() {
+  var input = document.getElementById('w-input');
+  var val = parseFloat(input.value);
+  if (!val || val <= 0) return;
+  var today = todayStr();
+  var idx = weightEntries.findIndex(function(e){ return e.date === today; });
+  if (idx >= 0) weightEntries[idx].weight = val;
+  else weightEntries.push({ id: uid(), date: today, weight: val });
+  input.value = '';
+  await saveJSON('weight-entries', weightEntries);
+  renderWeight();
+}
+async function deleteWeightEntry(id) {
+  weightEntries = weightEntries.filter(function(e){ return e.id !== id; });
+  await saveJSON('weight-entries', weightEntries);
+  renderWeight();
+}
+
+/* ---------- CALORIES ---------- */
+function renderCalories() {
+  var goalCard = document.getElementById('c-goal-card');
+  var today = todayStr();
+  var todays = calorieEntries.filter(function(e){ return e.date === today; });
+  var total = todays.reduce(function(s,e){ return s + e.calories; }, 0);
+
+  if (calorieGoal == null || editingGoal) {
+    goalCard.innerHTML =
+      '<div class="stat-label" style="margin-bottom:8px;">' + (calorieGoal == null ? 'Set your daily calorie goal' : 'Update your daily calorie goal') + '</div>' +
+      '<div class="form-row">' +
+      '<input type="number" id="goal-input" placeholder="2400" min="800" max="6000" step="10" inputmode="numeric" value="' + (calorieGoal != null ? calorieGoal : '') + '">' +
+      '<button class="btn btn-primary" id="goal-save">Save</button>' +
+      '</div>';
+  } else {
+    var pct = Math.min(100, Math.round((total / calorieGoal) * 100));
+    var remaining = calorieGoal - total;
+    goalCard.innerHTML =
+      '<div class="stat-row">' +
+      '<div><div class="stat-label">Consumed / goal</div>' +
+      '<div class="stat-value">' + total + ' <span style="font-size:15px;color:var(--ink-muted);">/ ' + calorieGoal + '</span></div></div>' +
+      '<button class="btn-text" id="goal-edit">Edit goal</button>' +
+      '</div>' +
+      '<div class="progress-track"><div class="progress-fill ' + (remaining < 0 ? 'over' : '') + '" style="width:' + pct + '%"></div></div>' +
+      '<div class="stat-delta ' + (remaining < 0 ? 'neg' : 'pos') + '">' + (remaining >= 0 ? remaining + ' kcal left' : Math.abs(remaining) + ' kcal over') + '</div>';
+  }
+
+  var weeks = getWeekRanges().map(function(r) {
+    var wEntries = calorieEntries.filter(function(e){ return e.date >= r.start && e.date <= r.end; });
+    if (!wEntries.length) return { start: r.start, end: r.end, avg: null };
+    var byDate = {};
+    wEntries.forEach(function(e){ byDate[e.date] = (byDate[e.date] || 0) + e.calories; });
+    var days = Object.keys(byDate);
+    var total = wEntries.reduce(function(s,e){ return s + e.calories; }, 0);
+    return { start: r.start, end: r.end, avg: total / days.length };
+  });
+  document.getElementById('c-weeks').innerHTML = renderWeekBars(weeks, ' kcal', 0);
+
+  var list = document.getElementById('c-list');
+  if (!todays.length) {
+    list.innerHTML = '<div class="empty-state">Nothing logged yet today.</div>';
+  } else {
+    list.innerHTML = todays.map(function(e) {
+      return '<li class="list-row">' +
+        '<span>' + escapeHTML(e.label) + '</span>' +
+        '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<span class="row-value">' + e.calories + ' kcal</span>' +
+        '<button class="remove-btn" data-del-cal="' + e.id + '" aria-label="Delete entry">×</button>' +
+        '</div></li>';
+    }).join('');
+  }
+
+  var byDate = {};
+  calorieEntries.forEach(function(e) {
+    if (e.date === today) return;
+    byDate[e.date] = (byDate[e.date] || 0) + e.calories;
+  });
+  var days = Object.keys(byDate).sort(function(a,b){ return b.localeCompare(a); }).slice(0, 5);
+  var histEl = document.getElementById('c-history');
+  if (!days.length) {
+    histEl.innerHTML = '<div class="empty-state">No previous days yet.</div>';
+  } else {
+    histEl.innerHTML = days.map(function(d) {
+      return '<li class="list-row"><span class="row-date">' + fmtDate(d) + '</span><span class="row-value">' + byDate[d] + ' kcal</span></li>';
+    }).join('');
+  }
+}
+
+async function saveGoal() {
+  var input = document.getElementById('goal-input');
+  var val = parseInt(input.value, 10);
+  if (!val || val <= 0) return;
+  calorieGoal = val;
+  editingGoal = false;
+  await saveJSON('calorie-goal', calorieGoal);
+  renderCalories();
+}
+async function addCalorieEntry() {
+  var labelInput = document.getElementById('c-label');
+  var kcalInput = document.getElementById('c-kcal');
+  var label = labelInput.value.trim() || 'Food';
+  var kcal = parseInt(kcalInput.value, 10);
+  if (!kcal || kcal <= 0) return;
+  calorieEntries.push({ id: uid(), date: todayStr(), label: label, calories: kcal });
+  labelInput.value = '';
+  kcalInput.value = '';
+  await saveJSON('calorie-entries', calorieEntries);
+  renderCalories();
+}
+async function deleteCalorieEntry(id) {
+  calorieEntries = calorieEntries.filter(function(e){ return e.id !== id; });
+  await saveJSON('calorie-entries', calorieEntries);
+  renderCalories();
+}
+
+/* ---------- WORKOUT ---------- */
+function getSelectedDay() {
+  var today = todayStr();
+  var state = workoutLog[today];
+  if (!state || !state.day) return null;
+  return workoutProgram.filter(function(d){ return d.id === state.day; })[0] || null;
+}
+
+function renderWorkout() {
+  var today = todayStr();
+  var state = workoutLog[today] || { day: null, checked: [] };
+
+  var selector = document.getElementById('day-selector');
+  selector.innerHTML = workoutProgram.map(function(d) {
+    return '<button class="plate ' + PLATE_CLASSES[d.id] + (state.day === d.id ? ' selected' : '') + '" data-day="' + d.id + '" aria-label="' + escapeHTML(d.label) + ': ' + escapeHTML(d.name) + '">' + d.label.replace('Day ', 'D') + '</button>';
+  }).join('');
+
+  var dayNameEl = document.getElementById('day-name');
+  var card = document.getElementById('workout-card');
+
+  if (!state.day) {
+    dayNameEl.textContent = '';
+    card.innerHTML = '<div class="empty-state">Tap a plate above to load today\'s session.</div>';
+    return;
+  }
+
+  var day = workoutProgram.filter(function(d){ return d.id === state.day; })[0];
+  if (!day) { dayNameEl.textContent = ''; card.innerHTML = '<div class="empty-state">Tap a plate above to load today\'s session.</div>'; return; }
+  dayNameEl.textContent = day.name;
+
+  if (editingWorkout) {
+    card.innerHTML =
+      '<div class="stat-row" style="margin-bottom:10px;">' +
+      '<span class="stat-label">Editing this day</span>' +
+      '<button class="btn-text" id="workout-done-edit">Done</button>' +
+      '</div>' +
+      '<div class="form-row" style="margin-bottom:14px;">' +
+      '<input type="text" id="day-name-input" value="' + escapeHTML(day.name) + '" placeholder="Day name" maxlength="30">' +
+      '</div>' +
+      day.exercises.map(function(ex) {
+        return '<div class="edit-ex-row">' +
+          '<div class="edit-ex-fields">' +
+          '<input type="text" class="edit-ex-name" data-ex-id="' + ex.id + '" value="' + escapeHTML(ex.name) + '" placeholder="Exercise name" maxlength="60">' +
+          '<input type="text" class="edit-ex-sets" data-ex-id="' + ex.id + '" value="' + escapeHTML(ex.sets) + '" placeholder="Sets × reps" maxlength="30">' +
+          '</div>' +
+          '<button class="remove-btn" data-remove-ex="' + ex.id + '" aria-label="Remove exercise">×</button>' +
+          '</div>';
+      }).join('') +
+      '<button class="btn btn-ghost" id="workout-add-ex" style="width:100%;margin-top:10px;">+ Add exercise</button>' +
+      '<div style="text-align:center;margin-top:16px;"><button class="btn-text" id="workout-reset-default">Reset this day to default</button></div>';
+    return;
+  }
+
+  if (!day.exercises.length) {
+    card.innerHTML = '<div class="stat-row" style="margin-bottom:4px;">' +
+      '<span></span><button class="btn-text" id="workout-edit">Edit</button></div>' +
+      '<div class="empty-state">No exercises yet — tap Edit to add some.</div>';
+    return;
+  }
+
+  var validIds = day.exercises.map(function(ex){ return ex.id; });
+  var doneCount = state.checked.filter(function(id){ return validIds.indexOf(id) >= 0; }).length;
+  card.innerHTML =
+    '<div class="stat-row" style="margin-bottom:4px;">' +
+    '<span class="stat-label">' + doneCount + '/' + day.exercises.length + ' done</span>' +
+    '<div style="display:flex;gap:14px;">' +
+    '<button class="btn-text" id="workout-edit">Edit</button>' +
+    '<button class="btn-text" id="workout-reset">Reset ticks</button>' +
+    '</div>' +
+    '</div>' +
+    day.exercises.map(function(ex) {
+      var checked = state.checked.indexOf(ex.id) >= 0;
+      return '<div class="exercise-row ' + (checked ? 'done' : '') + '">' +
+        '<input type="checkbox" class="tick" data-ex-id="' + ex.id + '" ' + (checked ? 'checked' : '') + ' aria-label="Mark ' + escapeHTML(ex.name) + ' complete">' +
+        '<div class="ex-main"><span class="ex-name">' + escapeHTML(ex.name) + '</span><span class="ex-sets">' + escapeHTML(ex.sets) + '</span></div>' +
+        '</div>';
+    }).join('');
+}
+
+function scheduleWorkoutSave() {
+  clearTimeout(workoutSaveTimer);
+  workoutSaveTimer = setTimeout(function() {
+    saveJSON('workout-program', workoutProgram);
+  }, 500);
+}
+
+async function addExercise() {
+  var day = getSelectedDay();
+  if (!day) return;
+  day.exercises.push({ id: day.id + '-' + uid(), name: '', sets: '' });
+  await saveJSON('workout-program', workoutProgram);
+  renderWorkout();
+}
+async function removeExercise(exId) {
+  var day = getSelectedDay();
+  if (!day) return;
+  day.exercises = day.exercises.filter(function(ex){ return ex.id !== exId; });
+  await saveJSON('workout-program', workoutProgram);
+  renderWorkout();
+}
+async function resetDayToDefault() {
+  var day = getSelectedDay();
+  if (!day) return;
+  var def = DEFAULT_WORKOUT_DAYS.filter(function(d){ return d.id === day.id; })[0];
+  if (!def) return;
+  var idx = workoutProgram.findIndex(function(d){ return d.id === day.id; });
+  workoutProgram[idx] = JSON.parse(JSON.stringify(def));
+  await saveJSON('workout-program', workoutProgram);
+  renderWorkout();
+}
+
+async function selectWorkoutDay(dayId) {
+  var today = todayStr();
+  var current = workoutLog[today];
+  editingWorkout = false;
+  if (current && current.day === dayId) return;
+  workoutLog[today] = { day: dayId, checked: [] };
+  await saveJSON('workout-log', workoutLog);
+  renderWorkout();
+}
+async function toggleExercise(exId) {
+  var today = todayStr();
+  var state = workoutLog[today];
+  if (!state) return;
+  var idx = state.checked.indexOf(exId);
+  if (idx >= 0) state.checked.splice(idx, 1);
+  else state.checked.push(exId);
+  await saveJSON('workout-log', workoutLog);
+  renderWorkout();
+}
+async function resetWorkout() {
+  var today = todayStr();
+  if (!workoutLog[today]) return;
+  workoutLog[today].checked = [];
+  await saveJSON('workout-log', workoutLog);
+  renderWorkout();
+}
+
+/* ---------- TABS ---------- */
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(function(p) {
+    p.hidden = p.id !== ('panel-' + tab);
+  });
+  document.querySelectorAll('.tab-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.tab === tab);
+  });
+}
+
+/* ---------- EVENTS ---------- */
+function bindEvents() {
+  document.getElementById('w-add').addEventListener('click', addWeightEntry);
+  document.getElementById('w-input').addEventListener('keydown', function(e){ if (e.key === 'Enter') addWeightEntry(); });
+  document.getElementById('w-list').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-del-weight]');
+    if (btn) deleteWeightEntry(btn.dataset.delWeight);
+  });
+
+  document.getElementById('panel-calories').addEventListener('click', function(e) {
+    if (e.target.id === 'goal-save') saveGoal();
+    if (e.target.id === 'goal-edit') { editingGoal = true; renderCalories(); }
+    if (e.target.id === 'c-add') addCalorieEntry();
+    var delBtn = e.target.closest('[data-del-cal]');
+    if (delBtn) deleteCalorieEntry(delBtn.dataset.delCal);
+  });
+  document.getElementById('panel-calories').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && e.target.id === 'goal-input') saveGoal();
+    if (e.key === 'Enter' && (e.target.id === 'c-kcal' || e.target.id === 'c-label')) addCalorieEntry();
+  });
+
+  document.getElementById('day-selector').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-day]');
+    if (btn) selectWorkoutDay(btn.dataset.day);
+  });
+  document.getElementById('workout-card').addEventListener('click', function(e) {
+    if (e.target.id === 'workout-reset') resetWorkout();
+    if (e.target.id === 'workout-edit') { editingWorkout = true; renderWorkout(); }
+    if (e.target.id === 'workout-done-edit') { editingWorkout = false; clearTimeout(workoutSaveTimer); saveJSON('workout-program', workoutProgram); renderWorkout(); }
+    if (e.target.id === 'workout-add-ex') addExercise();
+    if (e.target.id === 'workout-reset-default') resetDayToDefault();
+    var rmBtn = e.target.closest('[data-remove-ex]');
+    if (rmBtn) removeExercise(rmBtn.dataset.removeEx);
+  });
+  document.getElementById('workout-card').addEventListener('change', function(e) {
+    if (e.target.classList.contains('tick')) toggleExercise(e.target.dataset.exId);
+  });
+  document.getElementById('workout-card').addEventListener('input', function(e) {
+    var day = getSelectedDay();
+    if (!day) return;
+    if (e.target.id === 'day-name-input') {
+      day.name = e.target.value;
+      document.getElementById('day-name').textContent = day.name;
+      scheduleWorkoutSave();
+    } else if (e.target.classList.contains('edit-ex-name') || e.target.classList.contains('edit-ex-sets')) {
+      var ex = day.exercises.filter(function(x){ return x.id === e.target.dataset.exId; })[0];
+      if (!ex) return;
+      if (e.target.classList.contains('edit-ex-name')) ex.name = e.target.value;
+      else ex.sets = e.target.value;
+      scheduleWorkoutSave();
+    }
+  });
+
+  document.getElementById('tab-bar').addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-tab]');
+    if (btn) switchTab(btn.dataset.tab);
+  });
+}
+
+init();
+</script>
 </body>
 </html>
